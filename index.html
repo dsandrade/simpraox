@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>SimpraoX</title>
+	<script
+		src="http://code.jquery.com/jquery-1.11.2.js"
+		integrity="sha256-WMJwNbei5YnfOX5dfgVCS5C4waqvc+/0fV7W2uy3DyU="
+		crossorigin="anonymous"
+	></script>
+	<meta http-equiv="content-type" content="text/html;charset=UTF-8" />
+    <link rel="stylesheet" href="assets/bootstrap/css/bootstrap.min.css">
+    <link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<nav class="flex-center navbar navbar-dark bg-dark">
+	<a class="navbar-brand" href="#">SimpraoX</a>
+</nav>
+
+<div class="container-fluid" id="firstStepContainer">
+	<div class="row" >
+		<div class="col-md-3"></div>
+
+		<div class="col-md-6">
+			<div class="well">
+				<form id="firstStep">
+					<div class="form-group" style="text-align: center;">
+						<label for="exampleInputEmail1">
+							Quantas variáveis de decisão tem o problema?
+						</label>
+						<input
+							type="number"
+							class="form-control"
+							id="varNum"
+							placeholder="0"
+							min="0"
+						>
+					</div>
+
+					<div class="form-group" style="text-align: center;">
+						<label for="exampleInputEmail1">Número de Restrições?</label>
+						<input
+							type="number"
+							class="form-control"
+							id="varRestr"
+							placeholder="0"
+							min="0"
+						>
+					</div>
+
+					<div class="form-group" style="text-align: center;">
+						<label for="exampleInputEmail1">Qual a quantidade máxima de iterações?</label>
+						<input
+							type="number"
+							class="form-control"
+							id="varMaxInter"
+							placeholder="0"
+							min="0"
+						>
+					</div>
+
+					<div class="pull-right flex-center">
+						<button
+							type="button"
+							class="btn btn-primary goSecondStep"
+							tipo="max"
+						>
+							Maximizar
+						</button>
+					</div>
+					<div class="clearfix"></div>
+				</form>
+			</div>
+		</div>
+
+		<div class="col-md-3"></div>
+	</div>
+</div>
+
+<div class="container-fluid" id="secondStepContainer">
+	<div class="row" >
+		<div class="col-md-2"></div>
+
+		<div class="col-md-8 col-sm-12 forms">
+
+				<div class="well">
+				<form id="toSolve" class="inputing"></form>
+				<div id="Solving" class="calculating"></div>
+				<div id="Solution"></div>
+
+				<div class="pull-left">
+					<button
+						type="button"
+						class="btn btn-default calculating"
+						id="goBack"
+						style="display:none;"
+					>
+						<span
+							class="glyphicon glyphicon glyphicon-backward"
+						></span>
+						&nbsp;Anterior
+					</button>
+				</div>
+				<div class="pull-right">
+					<button
+						type="button"
+						class="btn btn-default inputing"
+						id="clearSecondStep"
+					>
+						<span class="glyphicon glyphicon-trash"></span>
+						&nbsp;Resetar
+					</button>
+					<button type="button" class="btn btn-primary" 	id="goNext"><span class="glyphicon glyphicon-forward"></span>&nbsp;Prosseguir</button>
+				</div>
+				<div class="clearfix"></div>
+				</div>
+		</div>
+
+		<div class="col-md-2"></div>
+	</div>
+</div>
+
+
+<script src="assets/bootstrap/js/bootstrap.js"></script>
+<script src="assets/simplex.js"></script>
+<script type="text/javascript">
+	var numVariaveis;
+	var numRestricoes;
+	var html;
+	var step = -1;
+	var stepTable = [];
+	var currentTable = [];
+	var tipo;
+
+	// Botão Zerar
+	$("#clearFirstStep").click(function(){
+		$("#firstStep")[0].reset();
+
+	});
+	$("#clearSecondStep").click(function(){
+		$("#toSolve")[0].reset();
+		$("#goNext").prop('disabled', false);
+	});
+
+	$("#randomizeSecondStep").click(function(){
+
+		/*$("[name='matriz[0][0]']").val('9');
+		$("[name='matriz[0][1]']").val('10');
+
+		$("[name='matriz[1][0]']").val('0.7');
+		$("[name='matriz[1][1]']").val('1');
+		$("[name='matriz[1][2]']").val('630');
+
+		$("[name='matriz[2][0]']").val('0.5');
+		$("[name='matriz[2][1]']").val('0.83');
+		$("[name='matriz[2][2]']").val('600');
+
+		$("[name='matriz[3][0]']").val('1');
+		$("[name='matriz[3][1]']").val('0.66');
+		$("[name='matriz[3][2]']").val('700');
+
+		$("[name='matriz[4][0]']").val('0.1');		
+		$("[name='matriz[4][1]']").val('0.25');
+		$("[name='matriz[4][2]']").val('135');*/
+		
+		$("#toSolve input[type=number]:not([readonly])").each(function(index,value) {
+			$(this).val(Math.floor((Math.random() * 30) - 15));
+			//var ex = [3,5,1,0,4,0,1,6,3,2,18]; // Ex do slide, para testes.
+			//$(this).val(ex[index]);
+		});
+
+	});
+	// Gera Inputs
+	$(".goSecondStep").click(function(){
+		step = -1;
+		var numVariaveis = $("#varNum").val();
+		var numRestricoes = $("#varRestr").val();
+		var numMaxInteracoes = $("#varMaxInter").val();
+		tipo = $(this).attr("tipo");
+		if( numRestricoes < 1 || numVariaveis < 1 || numMaxInteracoes < 1 ) {
+			alert('Valores devem ser maior que zero');
+			return;
+		}
+
+		// Mostra Container
+		$("#secondStepContainer").show();
+		$(".inputing").show();
+		$(".calculating").hide();
+		$("#Solution").html('');
+		$("#goNext").prop('disabled', false);
+		// Constroi primeira linha da matriz, com a função Z
+		// -------------------------------------------------------------------------------------------------------
+		html = `<h3>Função:</h3>`;
+
+		for( j = 1; j <= numVariaveis ; j++ )
+			html += `<input name="matriz[0][`+(j - 1)+`]" type="number" value="0" class="form-control input-sm" > X`+j+(j == numVariaveis ? '' : ' + ');
+
+		// Constroi restante das restrições
+		// -------------------------------------------------------------------------------------------------------
+		html += `<hr><h3>Restrições:</h3>`;
+
+		for( i = 1; i <= numRestricoes ; i++ ) {
+			var rhtml;
+			rhtml = `<div class="form-group">`;
+
+			for( j = 1; j <= numVariaveis ; j++ )
+				rhtml += `<input name="matriz[`+i+`][`+(j - 1)+`]" type="number" value="0" class="form-control input-sm"> X`+j+(j == numVariaveis ? '' : ' + ');
+
+			rhtml += `
+				<=
+
+				<input name="matriz[`+i+`][`+(numVariaveis)+`]" type="number" value="0"  class="form-control input-sm">
+
+				</div>
+			`;
+
+			html += rhtml;
+		}
+		$("#toSolve").html(html);
+	});
+
+	$("#goNext").click(function(){
+		var matriz = [];
+		var op = [];
+
+
+
+		$(".inputing").hide();
+		$(".calculating").show();
+
+
+		switch(step) {
+			case -1: // -1 Pois faz processo de construir tabela, só deve ser acionado ao clicar no botão 'Gerar'
+				numVariaveis = parseInt( $("#varNum").val() ) + 1; // Soma 1 para incluir função Z
+				numRestricoes = parseInt( $("#varRestr").val() ) + 1; // Soma 1 para incluir função Z
+				for( i = 0 ; i < numRestricoes - 1 ; i++ )
+					op[i] = $("select[name='op["+i+"]'] option:selected").val();
+
+				// Constroi Matriz com valores
+				for( i = 0; i < numRestricoes ; i++ ) {
+					var linha = [];
+					for( j = 0; j < numVariaveis ; j++ ) {
+						var valor = parseFloat($("input[name='matriz["+i+"]["+j+"]']").val());
+						linha[j] = valor;
+					}
+					matriz[i] = linha;
+				}
+
+				step = 0;
+				// Chama biblioteca, passando a matriz, e as operações.
+				currentTable = simplexJS.build(matriz,op,tipo);
+				stepTable[step] = JSON.parse(JSON.stringify(currentTable));
+				// Insere conteúdo gerado
+				$("#Solving").html(simplexJS.show(currentTable));
+				break;
+
+			default:
+				currentTable = simplexJS.calculate(stepTable,currentTable,tipo);
+				stepTable[step] = JSON.parse(JSON.stringify(currentTable));
+				$("#Solving").html(simplexJS.show(currentTable));
+				break;
+		}
+	});
+
+	$("#goBack").click(function(){
+		step--;
+		$("#Solution").html('');
+		if(step == -1) {
+			$(".inputing").show();
+			$(".calculating").hide();
+		} else {
+			$("#goNext").prop('disabled', false);
+			$("#Solving").html(simplexJS.show(stepTable[step]));
+			currentTable = JSON.parse(JSON.stringify(stepTable[step]));
+
+		}
+
+	});
+</script>
+
+</body>
+</html>
